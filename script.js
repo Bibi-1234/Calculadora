@@ -1,161 +1,114 @@
-var display = document.getElementById("display");
+const result = document.querySelector(".resultado");
+const buttons = document.querySelectorAll(".buttons button");
 
-var listenerBtn = [];
+let currentNumber = "";
+let firstOperand = null;
+let operator = null;
+let restart = false;
 
-//Operator buttons
-listenerBtn.push(document.getElementById("sum"));
-listenerBtn.push(document.getElementById("subtraction"));
-listenerBtn.push(document.getElementById("division"));
-listenerBtn.push(document.getElementById("multiplication"));
-
-//Number buttons
-listenerBtn.push(document.getElementById("num0"));
-listenerBtn.push(document.getElementById("num1"));
-listenerBtn.push(document.getElementById("num2"));
-listenerBtn.push(document.getElementById("num3"));
-listenerBtn.push(document.getElementById("num4"));
-listenerBtn.push(document.getElementById("num5"));
-listenerBtn.push(document.getElementById("num6"));
-listenerBtn.push(document.getElementById("num7"));
-listenerBtn.push(document.getElementById("num8"));
-listenerBtn.push(document.getElementById("num9"));
-
-//Additional buttons
-var btnResult = document.getElementById("result");
-var btnCleanDisplay = document.getElementById("cleanDisplay");
-var btnDeleteDigit = document.getElementById("deleteDigit");
-listenerBtn.push(document.getElementById("point"));
-
-var pointCounter = 0;
-var pointLimit = 1;
-
-for (var i = 0; i < listenerBtn.length; i++) {
-  listenerBtn[i].addEventListener("click", writeOnDisplay); 
+function updateResult(originClear = false){
+    result.innerText = originClear ? 0 : currentNumber.replace(".",",");
 }
 
-btnResult.onclick = function () {
-  calculateResult();
-};
+function addDigit(digit){
+    if (digit === "," && (currentNumber.includes(",") || !currentNumber)) return;
 
-btnDeleteDigit.onclick = function () {
-  deleteLastDigit();
-};
-
-btnCleanDisplay.onclick = function () {
-  display.value = "";
-  pointCounter = 0;
-};
-
-function calculateResult() {
-  if (verifyOperator(display.value.substring(display.value.length - 1, display.value.length))) {
-    deleteLastDigit(); //If the last digit on display is an operator, it's ignored
-  }
-
-  var calculatedValue = calculateArray(display.value); 
-
-  if (calculatedValue || calculatedValue == "0") {
-    display.value = calculatedValue;
-  }
-}
-
-function deleteLastDigit() {
-  if (display.value.length > 0) {
-    if (display.value[display.value.length - 1] === ".") {//If the deleted character is a decimal point, it can be replaced by a new one
-      pointCounter = 0;
+    if (restart){
+        currentNumber = digit;
+        restart = false;
+    } else {
+        currentNumber += digit;
     }
-    display.value = display.value.substring(0, display.value.length - 1);
-  }
+
+    updateResult();
 }
 
-function writeOnDisplay() {
-  lastDigit = this.value;
+function setOperator(newOperator) {
+    if (currentNumber){
+        calculate();
 
-  if (verifyOperator(lastDigit)){
-    pointCounter = 0;
-    if (verifyOperator(display.value.substring(display.value.length - 1, display.value.length))) { //replaces the previous operator by the new operator inputed
-      deleteLastDigit();
+        firstOperand = parseFloat(currentNumber.replace(",","."));
+        currentNumber="";
     }
-  } 
-    
-  if (verifyDecimalPoint(lastDigit) === true){
-    pointCounter++;
-    if (pointCounter > pointLimit){
-      return;
-    }    
-  } 
-  display.value += lastDigit;  
+
+    operator = newOperator;
 }
 
-function verifyDecimalPoint(valorDigitado) {
-  if (valorDigitado === ".") {
-    return true;
-  } else {
-    return false;
+function calculate(){
+    if(operator === null || firstOperand === null) return;
+    let secondOperand = parseFloat(currentNumber.replace(",","."));
+    let resultValue;
+
+    switch (operator) {
+        case "+":
+            resultValue = firstOperand + secondOperand;
+            break;
+        case "-":
+            resultValue = firstOperand - secondOperand;
+            break;
+        case "x":
+            resultValue = firstOperand * secondOperand;
+            break;
+        case "÷":
+            resultValue = firstOperand / secondOperand;
+            break;
+        default:
+            return;
+    }
+
+    if(resultValue.toString().split(".")[1]?.length > 5){
+        currentNumber = parseFloat(resultValue.toFixed(5)).toString();
+    } else {
+        currentNumber = resultValue.toString();
+    }
+
+    operator = null;
+    firstOperand = null;
+    restart = true;
+    percentageValue = null;
+    updateResult();
+}
+
+function clearCalculator(){
+    currentNumber = "";
+    firstOperand = null;
+    operator = null;
+    updateResult(true);
+}
+
+function setPercenntage(){
+    let result = parseFloat(currentNumber) / 100;
+
+    if (["+", "-"].includes(operator)) {
+      result = result * (firstOperand || 1);
+    }
+  
+    if (result.toString().split(".")[1]?.length > 5) {
+      result = result.toFixed(5).toString();
+    }
+  
+    currentNumber = result.toString();
+    updateResult();
   }
-}
-
-function verifyOperator(operatorValue) {
-  switch (operatorValue) {
-    case "*":
-      return true;
-    case "/":
-      return true;
-    case "+":
-      return true;
-    case "-":
-      return true;
-    default:
-      return false;
-  }
-}
-
-function calculateArray(exp) {
-  exp = exp.toString().split("+");
-  for (a = 0; a < exp.length; a++) {
-    exp[a] = exp[a].split("-");
-    for (b = 0; b < exp[a].length; b++) {
-      exp[a][b] = exp[a][b].split("*");
-      for (c = 0; c < exp[a][b].length; c++) {
-        exp[a][b][c] = exp[a][b][c].split("/");
-        exp[a][b][c] = divideArray(exp[a][b][c]);
+  
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const buttonText = button.innerText;
+      if (/^[0-9,]+$/.test(buttonText)) {
+        addDigit(buttonText);
+      } else if (["+", "-", "×", "÷"].includes(buttonText)) {
+        setOperator(buttonText);
+      } else if (buttonText === "=") {
+        calculate();
+      } else if (buttonText === "C") {
+        clearCalculator();
+      } else if (buttonText === "±") {
+        currentNumber = (
+          parseFloat(currentNumber || firstOperand) * -1
+        ).toString();
+        updateResult();
+      } else if (buttonText === "%") {
+        setPercentage();
       }
-      exp[a][b] = multiplyArray(exp[a][b]);
-    }
-    exp[a] = subtractArray(exp[a]);
-  }
-  exp = sumArray(exp);
-
-  return exp;
-}
-
-function multiplyArray(parameter) {
-  var resultMult = 1;
-  for (var x = 0; x < parameter.length; x++) {
-    resultMult *= parameter[x];
-  }
-  return resultMult;
-}
-
-function divideArray(parameter) {
-  var resultDiv = parameter[0];
-  for (var x = 1; x < parameter.length; x++) {
-    resultDiv /= parameter[x];
-  }
-  return resultDiv;
-}
-
-function subtractArray(parameter) {
-  var resultSub = parameter[0];
-  for (var x = 1; x < parameter.length; x++) {
-    resultSub -= parameter[x];
-  }
-  return resultSub;
-}
-
-function sumArray(parameter) {
-  var resultSum = 0;
-  for (var x = 0; x < parameter.length; x++) {
-    resultSum += parameter[x];
-  }
-  return resultSum;
-}
+    });
+  });
